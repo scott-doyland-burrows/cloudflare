@@ -1,0 +1,14 @@
+terraform init --upgrade
+
+./cf-terraforming generate --zone $CLOUDFLARE_ZONE_ID --resource-type "cloudflare_record" |
+sed '/^[[:space:]]*$/ s/^/{/' | #add "{" to blank lines
+sed 's/resource "cloudflare_record" "terraform_managed_resource_\([a-f0-9]\+\)" {/resource = "\1"/' | #convert resource line to remove unused config
+sed 's/^}/},/' | #convert } to }, if } is first character on line
+sed 's/data {/data = {/' | #convert "data "{" to "data = {"
+sed '$ s/,$//' | #delete comma from last line
+sed '1i {' | #add text to to start
+sed '1i cloudflare_record = [' | #add text to to start
+sed '$d' | #delete last line
+sed '$a ]' > terraform.auto.tfvars #add "[" to end
+
+terraform fmt terraform.auto.tfvars
